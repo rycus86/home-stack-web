@@ -1,0 +1,290 @@
+version: '3.5'
+
+x-log-options:
+  &log-options
+  fluentd-address: 192.168.0.52:24224
+  fluentd-async-connect: 'true'
+  fluentd-sub-second-precision: 'true'
+
+x-nfs-volume-opts:
+  &volume-options
+  type: nfs4
+  o: addr=192.168.0.52,rsize=8192,wsize=8192,timeo=15,hard,intr
+
+services:
+
+  # Reverse proxy
+
+  nginx:
+    image: nginx:1.13.9
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: start-first
+    labels:
+      domain.automation.signal: HUP
+    configs:
+      - source: nginx-main-config
+        target: /etc/nginx/nginx.conf
+    secrets:
+      - source: nginx-kibana-auth
+        target: /etc/auth-config/kibana.auth.conf
+    volumes:
+      - type: volume
+        source: nginx-config
+        target: /etc/nginx/conf.d
+        read_only: true
+        volume:
+          nocopy: true
+      - type: volume
+        source: ssl-certs
+        target: /etc/letsencrypt
+        read_only: true
+        volume:
+          nocopy: true
+    networks:
+      - web
+      - legacy
+    ports:
+      - 443:443
+    logging:
+      driver: 'fluentd'
+      options:
+        <<: *log-options
+        tag: app.nginx
+
+  # PyGen configuration generator
+
+  nginx-pygen:
+    image: rycus86/docker-pygen
+    command: >
+      --template /etc/docker-pygen/templates/nginx.tmpl
+      --target /etc/nginx/conf.d/default.conf
+      --signal nginx HUP
+      --interval 3 10
+      --swarm-manager
+      --workers tasks.nginx-pygen-worker
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        prometheus-job: pygen-manager-nginx
+        prometheus-port: 9413
+    configs:
+      - source: nginx-pygen-template
+        target: /etc/docker-pygen/templates/nginx.tmpl
+    volumes:
+      - nginx-config:/etc/nginx/conf.d:nocopy
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - default
+      - monitoring
+    logging:
+      driver: 'fluentd'
+      options:
+        <<: *log-options
+        tag: app.pygen.manager.nginx
+
+  nginx-pygen-worker:
+    image: rycus86/docker-pygen:worker
+    command: --manager nginx-pygen
+    read_only: true
+    deploy:
+      mode: global
+      labels:
+        prometheus-job: pygen-worker-nginx
+        prometheus-port: 9414
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - default
+      - monitoring
+    logging:
+      driver: 'fluentd'
+      options:
+        <<: *log-options
+        tag: app.pygen.worker.nginx
+
+  # Blog
+
+  ghost:
+    image: ghost:1.21.3
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.memory == high
+      labels:
+        routing-host: blog.viktoradam.net
+        routing-port: 2368
+        routing-max-body: 10m
+    environment:
+      - url=https://blog.viktoradam.net
+      - server__host=0.0.0.0
+      - server__port=2368
+    volumes:
+      - ghost-data:/var/lib/ghost/content/data:nocopy
+      - ghost-images:/var/lib/ghost/content/images:nocopy
+      - ghost-themes:/var/lib/ghost/content/themes:nocopy
+      - ghost-apps:/var/lib/ghost/content/apps:nocopy
+    networks:
+      - web
+    logging:
+      driver: 'fluentd'
+      options:
+        <<: *log-options
+        tag: app.web.blog
+
+  # Demo site
+
+  demo-site:
+    image: rycus86/demo-site
+    read_only: true
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: start-first
+      labels:
+        routing-host: demo.viktoradam.net
+        routing-port: 5000
+        prometheus-job: demo-site
+        prometheus-port: 5000
+    environment:
+      - HTTP_HOST=0.0.0.0
+    networks:
+      - web
+      - monitoring
+    logging:
+      driver: 'fluentd'
+      options:
+        <<: *log-options
+        tag: app.web.demo
+
+  # REST services
+
+  github-proxy:
+    image: rycus86/github-proxy
+    read_only: true
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: start-first
+      labels:
+        routing-host: api.viktoradam.net
+        routing-context: /github
+        routing-port: 5000
+        prometheus-job: github-proxy
+        prometheus-port: 5000
+    secrets:
+      - source: github-proxy-secrets
+        target: /var/secrets/secrets.env
+    environment:
+      - HTTP_HOST=0.0.0.0
+    networks:
+      - web
+      - monitoring
+    logging:
+      driver: 'fluentd'
+      options:
+        <<: *log-options
+        tag: app.github-proxy
+
+  dockerhub-proxy:
+    image: rycus86/dockerhub-proxy
+    read_only: true
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: start-first
+      labels:
+        routing-host: api.viktoradam.net
+        routing-context: /docker
+        routing-port: 5000
+        prometheus-job: dockerhub-proxy
+        prometheus-port: 5000
+    secrets:
+      - source: dockerhub-proxy-secrets
+        target: /var/secrets/secrets.env
+    environment:
+      - HTTP_HOST=0.0.0.0
+    networks:
+      - web
+      - monitoring
+    logging:
+      driver: 'fluentd'
+      options:
+        <<: *log-options
+        tag: app.dockerhub-proxy
+
+configs:
+  nginx-main-config:
+    name: nginx-main-config-${NGINX_MAIN_CONFIG}
+    file: ./config/nginx.main.config
+  nginx-pygen-template:
+    name: pygen-nginx-${NGINX_PYGEN_TEMPLATE_CONFIG}
+    file: ./config/nginx.pygen.template.config
+
+secrets:
+  nginx-kibana-auth:
+    name: nginx-auth-kibana-${NGINX_KIBANA_AUTH_CONF}
+    file: ./config/nginx.kibana.auth.conf
+  github-proxy-secrets:
+    name: github-proxy-secrets-${GITHUB_PROXY_SECRETS}
+    file: ./config/github-proxy.secrets
+  dockerhub-proxy-secrets:
+    name: dockerhub-proxy-secrets-${DOCKERHUB_PROXY_SECRETS}
+    file: ./config/dockerhub-proxy.secrets
+
+volumes:
+  nginx-config:
+    driver: local
+    driver_opts:
+      <<: *volume-options
+      device: :/nginx-config
+
+  ssl-certs:
+    driver: local
+    driver_opts:
+      <<: *volume-options
+      device: :/ssl-certs
+
+  ghost-data:
+    driver: local
+    driver_opts:
+      <<: *volume-options
+      device: :/ghost/data
+
+  ghost-images:
+    driver: local
+    driver_opts:
+      <<: *volume-options
+      device: :/ghost/images
+
+  ghost-themes:
+    driver: local
+    driver_opts:
+      <<: *volume-options
+      device: :/ghost/themes
+
+  ghost-apps:
+    driver: local
+    driver_opts:
+      <<: *volume-options
+      device: :/ghost/apps
+
+networks:
+  web:
+    name: home-web
+    external: true
+  monitoring:
+    name: home-monitoring
+    external: true
+  legacy:
+    name: home-legacy
+    external: true
