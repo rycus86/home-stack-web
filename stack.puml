@@ -1,0 +1,52 @@
+@startuml
+
+cloud "Cloudflare" << CDN >> as CF #ccf
+cloud "GitHub" as GH #ccf
+cloud "Docker Hub" as DH #ccf
+
+frame "Web stack" as web_stack {
+    [Nginx reverse proxy] << nginx >> as nginx #8f8
+    [GHost blog] << ghost >> as blog #f88
+    [Demo site] << rycus86/demo-site >> as demo_site #f88
+    [GitHub proxy] << rycus86/github-proxy >> as github_proxy #8ff
+    [Docker Hub proxy] << rycus86/dockerhub-proxy >> as dockerhub_proxy #8ff
+
+    [PyGen config generator] << rycus86/docker-pygen >> as pygen #ff8
+
+    node "Other Swarm nodes" {
+        [PyGen worker] << rycus86/docker-pygen:worker >> as pygen_worker #ff8
+    }
+}
+
+frame "Monitoring stack" {
+    [Prometheus] #ccc
+}
+
+frame "Logging stack" {
+    [Fluentd] #ccc
+}
+
+CF --> nginx
+
+nginx --> blog : blog.viktoradam.net
+nginx --> demo_site : demo.viktoradam.net
+nginx ----> github_proxy : api.viktoradam.net/github
+nginx ----> dockerhub_proxy : api.viktoradam.net/docker
+
+github_proxy --> GH : Fetch projects
+dockerhub_proxy --> DH : Fetch projects
+
+pygen -l-> nginx : Generate & reload config
+pygen_worker -u-> pygen : Send events
+
+[Prometheus] .r..> demo_site
+[Prometheus] .r..> github_proxy : Collect metrics
+[Prometheus] .r..> dockerhub_proxy
+[Prometheus] .r..> pygen
+[Prometheus] .r..> pygen_worker
+
+web_stack -u-> [Fluentd] : Send logs
+web_stack -u-> [Fluentd]
+web_stack -u-> [Fluentd]
+
+@enduml
