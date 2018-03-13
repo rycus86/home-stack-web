@@ -110,7 +110,7 @@ services:
   # Blog
 
   ghost:
-    image: ghost:1.21.3
+    image: ghost:1.21.5
     deploy:
       replicas: 1
       placement:
