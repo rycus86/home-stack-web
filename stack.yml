@@ -45,9 +45,7 @@ services:
           nocopy: true
     networks:
       - web
-      - legacy
     ports:
-      - 80:80
       - 443:443
     logging:
       driver: 'fluentd'
@@ -285,7 +283,4 @@ networks:
     external: true
   monitoring:
     name: home-monitoring
-    external: true
-  legacy:
-    name: home-legacy
     external: true
