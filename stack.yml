@@ -221,7 +221,7 @@ services:
         <<: *log-options
         tag: app.dockerhub-proxy
 
-  # Redirect server
+  # Redirect servers
 
   redirect-server:
     image: rycus86/redirect-server
@@ -253,6 +253,33 @@ services:
         <<: *log-options
         tag: app.redirect-server.r
 
+  redirect-server-www:
+    image: rycus86/redirect-server
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: start-first
+      labels:
+        routing-host: www.viktoradam.net
+        routing-port: 5000
+        prometheus-job: redirect-server-www
+        prometheus-port: 5000
+    configs:
+      - source: redirect-server-www
+        target: /var/conf/redir/static-rules.yml
+    environment:
+      - HTTP_HOST=0.0.0.0
+      - RULES_DIR=/var/conf/redir
+    networks:
+      - web
+      - monitoring
+    logging:
+      driver: 'fluentd'
+      options:
+        <<: *log-options
+        tag: app.redirect-server.www
+
 configs:
   nginx-main-config:
     name: nginx-main-config-${NGINX_MAIN_CONFIG}
@@ -263,6 +290,9 @@ configs:
   redirect-server-rules:
     name: redirect-server-rules-${REDIRECT_SERVER_CONFIG}
     file: ./config/redirect-server.config
+  redirect-server-www:
+    name: redirect-server-www-${REDIRECT_SERVER_WWW_CONFIG}
+    file: ./config/redirect-server-www.config
 
 secrets:
   nginx-kibana-auth:
