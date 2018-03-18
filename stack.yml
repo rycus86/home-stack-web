@@ -221,6 +221,38 @@ services:
         <<: *log-options
         tag: app.dockerhub-proxy
 
+  # Redirect server
+
+  redirect-server:
+    image: rycus86/redirect-server
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: start-first
+      labels:
+        routing-host: r.viktoradam.net
+        routing-port: 5000
+        prometheus-job: redirect-server
+        prometheus-port: 5000
+    secrets:
+      - source: redirect-server-secrets
+        target: /var/conf/redir/admin-config.yml
+    configs:
+      - source: redirect-server-rules
+        target: /var/conf/redir/static-rules.yml
+    environment:
+      - HTTP_HOST=0.0.0.0
+      - RULES_DIR=/var/conf/redir
+    networks:
+      - web
+      - monitoring
+    logging:
+      driver: 'fluentd'
+      options:
+        <<: *log-options
+        tag: app.redirect-server.r
+
 configs:
   nginx-main-config:
     name: nginx-main-config-${NGINX_MAIN_CONFIG}
@@ -228,6 +260,9 @@ configs:
   nginx-pygen-template:
     name: pygen-nginx-${NGINX_PYGEN_TEMPLATE_CONFIG}
     file: ./config/nginx.pygen.template.config
+  redirect-server-rules:
+    name: redirect-server-rules-${REDIRECT_SERVER_CONFIG}
+    file: ./config/redirect-server.config
 
 secrets:
   nginx-kibana-auth:
@@ -239,6 +274,9 @@ secrets:
   dockerhub-proxy-secrets:
     name: dockerhub-proxy-secrets-${DOCKERHUB_PROXY_SECRETS}
     file: ./config/dockerhub-proxy.secrets
+  redirect-server-secrets:
+    name: redirect-server-secrets-${REDIRECT_SERVER_SECRETS}
+    file: ./config/redirect-server.secrets
 
 volumes:
   nginx-config:
