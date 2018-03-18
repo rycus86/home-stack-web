@@ -22,6 +22,8 @@ services:
       update_config:
         parallelism: 1
         order: start-first
+      labels:
+        - routing-extra-hosts=viktoradam.net
     labels:
       domain.automation.signal: HUP
     configs:
