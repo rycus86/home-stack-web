@@ -10,6 +10,7 @@ frame "Web stack" as web_stack {
     [Demo site] << rycus86/demo-site >> as demo_site #f88
     [GitHub proxy] << rycus86/github-proxy >> as github_proxy #8ff
     [Docker Hub proxy] << rycus86/dockerhub-proxy >> as dockerhub_proxy #8ff
+    [Redirect server] << rycus86/redirect-server >> as redirect_server #88f
 
     [PyGen config generator] << rycus86/docker-pygen >> as pygen #ff8
 
@@ -32,6 +33,7 @@ nginx --> blog : blog.viktoradam.net
 nginx --> demo_site : demo.viktoradam.net
 nginx ----> github_proxy : api.viktoradam.net/github
 nginx ----> dockerhub_proxy : api.viktoradam.net/docker
+nginx --> redirect_server : r.viktoradam.net/docker
 
 github_proxy --> GH : Fetch projects
 dockerhub_proxy --> DH : Fetch projects
