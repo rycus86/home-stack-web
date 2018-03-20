@@ -227,6 +227,7 @@ services:
 
   redirect-server:
     image: rycus86/redirect-server
+    read_only: true
     deploy:
       replicas: 1
       update_config:
@@ -246,6 +247,9 @@ services:
     environment:
       - HTTP_HOST=0.0.0.0
       - RULES_DIR=/var/conf/redir
+      - TARGET_FILE=/var/conf/rules/admin.rules
+    volumes:
+      - redirect-rules:/var/conf/rules:nocopy
     networks:
       - web
       - monitoring
@@ -257,6 +261,7 @@ services:
 
   redirect-server-www:
     image: rycus86/redirect-server
+    read_only: true
     deploy:
       replicas: 1
       update_config:
@@ -346,6 +351,12 @@ volumes:
     driver_opts:
       <<: *volume-options
       device: :/ghost/apps
+
+  redirect-rules:
+    driver: local
+    driver_opts:
+      <<: *volume-options
+      device: :/redirect-rules
 
 networks:
   web:
