@@ -16,7 +16,7 @@ services:
   # Reverse proxy
 
   nginx:
-    image: nginx:1.13.9
+    image: nginx:1.13.10
     deploy:
       replicas: 1
       update_config:
@@ -112,7 +112,7 @@ services:
   # Blog
 
   ghost:
-    image: ghost:1.21.4
+    image: ghost:1.22.0
     deploy:
       replicas: 1
       placement:
