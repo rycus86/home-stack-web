@@ -115,6 +115,9 @@ services:
     image: ghost:1.22.0
     deploy:
       replicas: 1
+      update_config:
+        parallelism: 1
+        order: start-first
       placement:
         constraints:
           - node.labels.memory == high
