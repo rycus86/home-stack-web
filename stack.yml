@@ -69,12 +69,11 @@ services:
       --workers tasks.nginx-pygen-worker
     deploy:
       replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
       labels:
         prometheus-job: pygen-manager-nginx
         prometheus-port: 9413
+    environment:
+      DOCKER_HOST: tcp://docker-manager:2375
     configs:
       - source: nginx-pygen-template
         target: /etc/docker-pygen/templates/nginx.tmpl
@@ -84,6 +83,7 @@ services:
     networks:
       - default
       - monitoring
+      - docker
     logging:
       driver: 'fluentd'
       options:
@@ -368,4 +368,7 @@ networks:
     external: true
   monitoring:
     name: home-monitoring
+    external: true
+  docker:
+    name: home-docker
     external: true
