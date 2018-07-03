@@ -79,7 +79,6 @@ services:
         target: /etc/docker-pygen/templates/nginx.tmpl
     volumes:
       - nginx-config:/etc/nginx/conf.d:nocopy
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - default
       - monitoring
@@ -99,11 +98,12 @@ services:
       labels:
         prometheus-job: pygen-worker-nginx
         prometheus-port: 9414
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOCKER_HOST: tcp://docker-manager:2375
     networks:
       - default
       - monitoring
+      - docker
     logging:
       driver: 'fluentd'
       options:
