@@ -19,6 +19,9 @@ services:
     image: nginx:1.13.10
     deploy:
       replicas: 1
+      resources:
+        limits:
+          memory: 32M
       update_config:
         parallelism: 1
         order: start-first
@@ -69,6 +72,9 @@ services:
       --workers tasks.nginx-pygen-worker
     deploy:
       replicas: 1
+      resources:
+        limits:
+          memory: 32M
       labels:
         prometheus-job: pygen-manager-nginx
         prometheus-port: 9413
@@ -95,6 +101,9 @@ services:
     read_only: true
     deploy:
       mode: global
+      resources:
+        limits:
+          memory: 32M
       labels:
         prometheus-job: pygen-worker-nginx
         prometheus-port: 9414
@@ -116,6 +125,9 @@ services:
     image: ghost:1.22.8
     deploy:
       replicas: 1
+      resources:
+        limits:
+          memory: 128M
       update_config:
         parallelism: 1
         order: start-first
@@ -150,6 +162,9 @@ services:
     read_only: true
     deploy:
       replicas: 1
+      resources:
+        limits:
+          memory: 48M
       update_config:
         parallelism: 1
         order: start-first
@@ -176,6 +191,9 @@ services:
     read_only: true
     deploy:
       replicas: 1
+      resources:
+        limits:
+          memory: 48M
       update_config:
         parallelism: 1
         order: start-first
@@ -204,6 +222,9 @@ services:
     read_only: true
     deploy:
       replicas: 1
+      resources:
+        limits:
+          memory: 48M
       update_config:
         parallelism: 1
         order: start-first
@@ -234,6 +255,9 @@ services:
     read_only: true
     deploy:
       replicas: 1
+      resources:
+        limits:
+          memory: 32M
       update_config:
         parallelism: 1
         order: start-first
@@ -268,6 +292,9 @@ services:
     read_only: true
     deploy:
       replicas: 1
+      resources:
+        limits:
+          memory: 32M
       update_config:
         parallelism: 1
         order: start-first
