@@ -107,12 +107,11 @@ services:
       labels:
         prometheus-job: pygen-worker-nginx
         prometheus-port: 9414
-    environment:
-      DOCKER_HOST: tcp://docker-manager:2375
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - default
       - monitoring
-      - docker
     logging:
       driver: 'fluentd'
       options:
