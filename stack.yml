@@ -126,7 +126,7 @@ services:
       replicas: 1
       resources:
         limits:
-          memory: 129M
+          memory: 170M
       update_config:
         parallelism: 1
         order: start-first
