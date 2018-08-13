@@ -25,8 +25,8 @@ services:
       update_config:
         parallelism: 1
         order: start-first
-      labels:
-        - routing-extra-hosts=viktoradam.net
+      #labels:
+      #  - routing-extra-hosts=viktoradam.net
     labels:
       domain.automation.signal: HUP
     configs:
@@ -286,36 +286,36 @@ services:
         <<: *log-options
         tag: app.redirect-server.r
 
-  redirect-server-www:
-    image: rycus86/redirect-server
-    read_only: true
-    deploy:
-      replicas: 1
-      resources:
-        limits:
-          memory: 32M
-      update_config:
-        parallelism: 1
-        order: start-first
-      labels:
-        routing-host: www.viktoradam.net
-        routing-port: 5000
-        prometheus-job: redirect-server-www
-        prometheus-port: 5000
-    configs:
-      - source: redirect-server-www
-        target: /var/conf/redir/static-rules.yml
-    environment:
-      - HTTP_HOST=0.0.0.0
-      - RULES_DIR=/var/conf/redir
-    networks:
-      - web
-      - monitoring
-    logging:
-      driver: 'fluentd'
-      options:
-        <<: *log-options
-        tag: app.redirect-server.www
+#  redirect-server-www:
+#    image: rycus86/redirect-server
+#    read_only: true
+#    deploy:
+#      replicas: 1
+#      resources:
+#        limits:
+#          memory: 32M
+#      update_config:
+#        parallelism: 1
+#        order: start-first
+#      labels:
+#        routing-host: www.viktoradam.net
+#        routing-port: 5000
+#        prometheus-job: redirect-server-www
+#        prometheus-port: 5000
+#    configs:
+#      - source: redirect-server-www
+#        target: /var/conf/redir/static-rules.yml
+#    environment:
+#      - HTTP_HOST=0.0.0.0
+#      - RULES_DIR=/var/conf/redir
+#    networks:
+#      - web
+#      - monitoring
+#    logging:
+#      driver: 'fluentd'
+#      options:
+#        <<: *log-options
+#        tag: app.redirect-server.www
 
 configs:
   nginx-main-config:
